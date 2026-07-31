@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M.S Enterprises - Premium Salary Slip Generator</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- html2pdf.js library for high-quality PDF downloads -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <!-- AUTH MODAL -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-card">
+      <h2 id="authTitle">Login to Access Your Slips</h2>
+      <div class="form-group">
+        <label>User Name</label>
+        <input type="text" id="authUsername" placeholder="Enter username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="Enter password">
+      </div>
+      <button class="btn btn-primary" id="authSubmitBtn" onclick="handleAuth()">Login</button>
+      <p class="auth-toggle" onclick="toggleAuthMode()">New user? Register account</p>
+    </div>
+  </div>
+
+  <!-- MAIN APP TOP NAVBAR -->
+  <header class="navbar">
+    <div class="logo">MSE Payroll Pro</div>
+    <div class="nav-right">
+      <span id="userBadge" class="user-badge">Not Logged In</span>
+      <button class="btn btn-secondary" onclick="openSavedSlipsModal()">📁 My Saved Slips</button>
+      <button class="btn btn-outline" id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER WITH EDITOR & PREVIEW -->
+  <div class="main-layout">
+    
+    <!-- LEFT: MYBILLBOOK CUSTOM EDITOR PANEL -->
+    <aside class="editor-panel">
+      <h3>🎨 Customization & Data Editor</h3>
+      
+      <!-- Design Customization -->
+      <details open>
+        <summary>Template & Branding</summary>
+        <div class="form-group">
+          <label>Company Name</label>
+          <input type="text" id="inCompanyName" value="M.S ENTERPRISES" oninput="updatePreview()">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Theme Color</label>
+            <input type="color" id="inPrimaryColor" value="#1e3a8a" onchange="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Font Family</label>
+            <select id="inFontFamily" onchange="updatePreview()">
+              <option value="'Inter', sans-serif">Inter Clean</option>
+              <option value="'Roboto', sans-serif">Roboto Classic</option>
+              <option value="Arial, sans-serif">Arial Standard</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Company Logo</label>
+          <input type="file" id="inLogoFile" accept="image/*" onchange="handleLogoUpload(event)">
+        </div>
+      </details>
+
+      <!-- Employee Details -->
+      <details open>
+        <summary>Employee Details</summary>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Employee Name</label>
+            <input type="text" id="inEmpName" value="Suresh Kumar" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Employee ID</label>
+            <input type="text" id="inEmpId" value="MSE-104" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Designation</label>
+            <input type="text" id="inDesignation" value="Site Fitter" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Pay Month/Year</label>
+            <input type="text" id="inMonthYear" value="July 2026" oninput="updatePreview()">
+          </div>
+        </div>
+      </details>
+
+      <!-- Attendance & Overtime (Precision Engine) -->
+      <details open>
+        <summary>Attendance & Overtime Rules</summary>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monthly Fixed Salary (₹)</label>
+            <input type="number" id="inMonthlySalary" value="17000" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Days Worked</label>
+            <input type="number" id="inDaysWorked" value="28" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Days In Month</label>
+            <select id="inDaysInMonth" onchange="updatePreview()">
+              <option value="30">30 Days</option>
+              <option value="31">31 Days</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Overtime Hours</label>
+            <input type="number" id="inOtHours" value="10" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Days Present</label>
+            <input type="number" id="inDaysPresent" value="28" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Days Absent</label>
+            <input type="number" id="inDaysAbsent" value="2" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Total Working Hours</label>
+            <input type="number" id="inTotalHours" value="240" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Google Sheet Attendance Link</label>
+            <input type="url" id="inAttendanceSheetUrl" placeholder="https://docs.google.com/..." oninput="updatePreview()">
+          </div>
+        </div>
+      </details>
+
+      <!-- Deductions -->
+      <details>
+        <summary>Deductions (Optional)</summary>
+        <div class="form-row">
+          <div class="form-group">
+            <label>PF Deduction (₹)</label>
+            <input type="number" id="inPf" value="0" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Advance Salary (₹)</label>
+            <input type="number" id="inAdvance" value="0" oninput="updatePreview()">
+          </div>
+        </div>
+      </details>
+
+      <div class="action-buttons">
+        <button class="btn btn-success" onclick="saveSlipToDatabase()">💾 Save Lifetime to Account</button>
+        <button class="btn btn-primary" onclick="downloadPDF()">📥 Download Official PDF</button>
+      </div>
+    </aside>
+
+    <!-- RIGHT: LIVE SALARY SLIP PREVIEW -->
+    <main class="preview-panel">
+      <div id="salarySlipPdf" class="salary-slip-document">
+        
+        <!-- Header Zone -->
+        <div class="slip-header">
+          <div class="header-left">
+            <img id="slipLogo" src="" alt="Logo" class="company-logo" style="display:none;">
+            <div>
+              <h1 id="outCompanyName">M.S ENTERPRISES</h1>
+              <p>Official Payslip Statement</p>
+            </div>
+          </div>
+          <div class="header-right">
+            <h2 id="outMonthYear">July 2026</h2>
+            <p>Slip No: <span id="outSlipNo">MSE-2026-001</span></p>
+          </div>
+        </div>
+
+        <hr class="slip-divider">
+
+        <!-- Employee Summary Grid -->
+        <div class="info-grid">
+          <div><strong>Employee Name:</strong> <span id="outEmpName">Suresh Kumar</span></div>
+          <div><strong>Employee ID:</strong> <span id="outEmpId">MSE-104</span></div>
+          <div><strong>Designation:</strong> <span id="outDesignation">Site Fitter</span></div>
+          <div><strong>Base Days Benchmark:</strong> 28 Days Fixed</div>
+        </div>
+
+        <!-- Attendance Breakdown Callout Box -->
+        <div class="attendance-box">
+          <h4>ATTENDANCE & DAY-RATE BREAKDOWN</h4>
+          <div class="attendance-grid">
+            <div>Days in Month: <b id="outMonthDays">30</b></div>
+            <div>Actual Days Worked: <b id="outWorkedDays">28</b></div>
+            <div>Per Day Calculated Rate: ₹<b id="outPerDayRate">607.14</b></div>
+            <div>Overtime Rate/Hr: ₹<b id="outOtRate">75.89</b></div>
+            <div>Payable Days Granted: <b id="outPayableDays">30</b></div>
+            <div>OT Hours Done: <b id="outOtHours">10</b></div>
+          </div>
+          <div class="attendance-note" id="outAttendanceNote">
+            ✅ Status: Full 28 Days Completed -> Full Month Salary Granted (No Deductions).
+          </div>
+          <div class="attendance-proof">
+            <h4>Attendance Summary</h4>
+            <div class="proof-grid">
+              <div>Days Present: <b id="outDaysPresent">28</b></div>
+              <div>Days Absent: <b id="outDaysAbsent">2</b></div>
+              <div>Total Work Hours: <b id="outTotalHours">240</b></div>
+              <div>OT Hours Verified: <b id="outOtHoursProof">10</b></div>
+            </div>
+            <div class="proof-sheet" id="outAttendanceSheetLink">
+              <a href="#" target="_blank" rel="noopener noreferrer">Google Sheet link will appear here.</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Financial Table -->
+        <table class="financial-table">
+          <thead>
+            <tr>
+              <th>EARNINGS (KAMAI)</th>
+              <th>AMOUNT (₹)</th>
+              <th>DEDUCTIONS (KATAI)</th>
+              <th>AMOUNT (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Basic Earned Pay (<span id="outEarnedDaysLabel">30</span> Days)</td>
+              <td id="outBaseSalary">₹18,214</td>
+              <td>Provident Fund (PF)</td>
+              <td id="outPf">₹0</td>
+            </tr>
+            <tr>
+              <td>Overtime Pay (<span id="outOtHoursLabel">10</span> Hrs)</td>
+              <td id="outOtAmount">₹759</td>
+              <td>Advance Adjustment</td>
+              <td id="outAdvance">₹0</td>
+            </tr>
+            <tr class="total-row">
+              <td><strong>TOTAL GROSS EARNINGS</strong></td>
+              <td id="outGross"><strong>₹18,973</strong></td>
+              <td><strong>TOTAL DEDUCTIONS</strong></td>
+              <td id="outDeductions"><strong>₹0</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Net Payable Banner -->
+        <div class="net-pay-banner">
+          <div>NET SALARY PAYABLE:</div>
+          <div class="net-amount" id="outNetPay">₹18,973</div>
+        </div>
+        <p class="words-line">In Words: <span id="outInWords">Eighteen Thousand Nine Hundred Seventy Three Rupees Only</span></p>
+
+        <!-- Footer Signatures -->
+        <div class="slip-footer">
+          <div class="sig-box">
+            <p>Employee Signature</p>
+          </div>
+          <div class="stamp-box">
+            <div class="stamp-circle">MSE APPROVED</div>
+          </div>
+          <div class="sig-box">
+            <p>Authorized Signatory & Stamp</p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- SAVED SLIPS DRAWER MODAL -->
+  <div id="slipsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card wide-card">
+      <div class="modal-header">
+        <h2>Lifetime Saved Salary Slips</h2>
+        <span class="close-btn" onclick="closeSavedSlipsModal()">&times;</span>
+      </div>
+      <div class="table-container">
+        <table class="saved-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th>Month</th>
+              <th>Net Salary</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="savedSlipsList">
+            <!-- Dynamic Slips Loaded Here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
