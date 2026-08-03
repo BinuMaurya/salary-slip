@@ -5,6 +5,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const { calculateSalarySlip } = require('./calculation');
 
 const app = express();
 
@@ -92,105 +93,142 @@ const authenticateToken = (req, res, next) => {
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
+    
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
+    
+    if (username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    }
+    
+    if (password.length < 4) {
+      return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    }
 
     const existingUser = await User.findOne({ username: username.toLowerCase().trim() });
-    if (existingUser) return res.status(400).json({ error: 'Username already exists' });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword });
+    const user = new User({ username: username.toLowerCase().trim(), password: hashedPassword });
     await user.save();
     
+    console.log('✅ User registered:', username);
     res.status(201).json({ message: 'User registered successfully!' });
   } catch (err) {
-    res.status(500).json({ error: 'Error creating user' });
+    console.error('❌ Register Error:', err.message);
+    res.status(500).json({ error: 'Error creating user: ' + err.message });
   }
 });
 
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
     const user = await User.findOne({ username: username.toLowerCase().trim() });
-    if (!user) return res.status(400).json({ error: 'Invalid username or password' });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid username or password' });
+    }
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(400).json({ error: 'Invalid username or password' });
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Invalid username or password' });
+    }
 
     const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    console.log('✅ User logged in:', username);
     res.json({ token, username: user.username });
   } catch (err) {
-    res.status(500).json({ error: 'Login error' });
+    console.error('❌ Login Error:', err.message);
+    res.status(500).json({ error: 'Login error: ' + err.message });
   }
 });
 
 // --- Salary Calculation Logic Engine ---
-function calculateExactSalary(monthlySalary = 0, daysWorked = 0, daysInMonth = 30, otHours = 0) {
-  const perDayRate = monthlySalary / 28; // 28 Days Fixed Base
-  const otRatePerHour = perDayRate / 8;
-  
-  let payableDays = daysWorked;
-  if (daysWorked === 28) {
-    payableDays = daysInMonth; // Full Month Paid
-  } else if (daysWorked > 28) {
-    payableDays = daysWorked + 2; // Extra Sunday Incentive
-  }
-
-  const baseEarnedSalary = Math.round(perDayRate * payableDays);
-  const otAmount = Math.round(otRatePerHour * otHours);
-  const grossSalary = baseEarnedSalary + otAmount;
-
-  return {
-    perDayRate: Number(perDayRate.toFixed(2)),
-    otRatePerHour: Number(otRatePerHour.toFixed(2)),
-    payableDays,
-    baseEarnedSalary,
-    otAmount,
-    grossSalary
-  };
+function calculateExactSalary(monthlySalary = 0, daysPresent = 0, daysInMonth = 30, otHours = 0, weeklyWages = 0, pf = 0, advance = 0) {
+  return calculateSalarySlip({ monthlySalary, daysPresent, daysInMonth, otHours, weeklyWages, pf, advance });
 }
 
 // --- Salary Slip CRUD Routes ---
 app.post('/api/slips/calculate', (req, res) => {
-  const { monthlySalary, daysWorked, daysInMonth, otHours } = req.body;
-  const calculations = calculateExactSalary(
-    Number(monthlySalary || 0), 
-    Number(daysWorked || 0), 
-    Number(daysInMonth || 30), 
-    Number(otHours || 0)
-  );
-  res.json(calculations);
+    try {
+        const { 
+            monthlySalary = 0, 
+            daysInMonth = 28, 
+            daysPresent = 0, 
+            otHours = 0, 
+            kharchi = 0, 
+            advance = 0,
+            pf = 0
+        } = req.body;
+
+        const numSalary = Number(monthlySalary);
+        const numDaysInMonth = Number(daysInMonth) || 28;
+        const numPresent = Number(daysPresent);
+        const numOtHours = Number(otHours);
+        const numKharchi = Number(kharchi);
+        const numAdvance = Number(advance);
+        const numPf = Number(pf);
+
+        // 1. Per Day Rate Calculation
+        const perDayRate = numDaysInMonth > 0 ? (numSalary / numDaysInMonth) : 0;
+
+        // 2. Base Earned Salary based on ACTUAL Present Days
+        const baseEarnedSalary = perDayRate * numPresent;
+
+        // 3. OT Rate per Hour (Standard 8 Hours Working Day)
+        const otRatePerHour = perDayRate / 8;
+        const otAmount = otRatePerHour * numOtHours;
+
+        // 4. Gross Salary
+        const grossSalary = baseEarnedSalary + otAmount;
+
+        // 5. Deductions (Kharchi + Advance + PF)
+        const totalDeductions = numKharchi + numAdvance + numPf;
+
+        // 6. Final Net Payable Salary
+        const netSalary = grossSalary - totalDeductions;
+
+        return res.json({
+            perDayRate: perDayRate.toFixed(2),
+            otRatePerHour: otRatePerHour.toFixed(2),
+            baseEarnedSalary: Math.round(baseEarnedSalary),
+            otAmount: Math.round(otAmount),
+            grossSalary: Math.round(grossSalary),
+            totalDeductions: Math.round(totalDeductions),
+            netSalary: Math.round(netSalary),
+            // Also pass back payableDays for consistency with old structure if needed by frontend
+            payableDays: numPresent 
+        });
+
+    } catch (error) {
+        console.error("Calculation Engine Error:", error);
+        res.status(500).json({ error: "Failed to calculate salary" });
+    }
 });
 
 app.post('/api/slips/save', authenticateToken, async (req, res) => {
   try {
     const calc = calculateExactSalary(
       Number(req.body.monthlySalary || 0),
-      Number(req.body.daysWorked || 0),
+      Number(req.body.daysPresent || 0),
       Number(req.body.daysInMonth || 30),
-      Number(req.body.otHours || 0)
+      Number(req.body.otHours || 0),
+      Number(req.body.weeklyWages || 0),
+      Number(req.body.pf || 0),
+      Number(req.body.advance || 0)
     );
-
-    const pf = Number(req.body.pfDeduction || 0);
-    const esi = Number(req.body.esiDeduction || 0);
-    const advance = Number(req.body.advanceDeduction || 0);
-    const totalDeductions = pf + esi + advance;
-    const netSalary = calc.grossSalary - totalDeductions;
 
     const newSlip = new Slip({
       ...req.body,
       userId: req.user.userId,
-      ...calc,
-      pfDeduction: pf,
-      esiDeduction: esi,
-      advanceDeduction: advance,
-      totalDeductions,
-      netSalary
+      ...calc
     });
 
     await newSlip.save();
