@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://salary-slip-daoy.onrender.com';
 
 let authToken = localStorage.getItem('mse_token') || null;
 let currentUsername = localStorage.getItem('mse_user') || null;
