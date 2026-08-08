@@ -1,23 +1,25 @@
 function calculateSalarySlip({ 
   monthlySalary = 0, 
-  month = new Date().getMonth() + 1, // Default current month (1 to 12)
-  year = new Date().getFullYear(),   // Default current year
-  isFullAttendance = true,           // Full attendance boolean
-  customDaysWorked = null,           // Leaves li hon toh
+  month = new Date().getMonth() + 1, 
+  year = new Date().getFullYear(),   
+  isFullAttendance = true,           
+  customDaysWorked = null,           
   otHours = 0, 
   weeklyWages = 0, 
   pf = 0, 
   advance = 0 
 }) {
-  // 1. Auto-detect total days in selected month
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // 2. Base Rates - Absolute 2-decimal Fixed Numbers
-  // Unrounded numbers carry mathematical drift, so we round rate first!
-  const perDayRate = Number((monthlySalary / 28).toFixed(2));
-  const otRatePerHour = Number((perDayRate / 8).toFixed(2));
+  // 1. Unrounded Rates
+  const exactPerDayRate = monthlySalary / 28;
+  const exactOtRatePerHour = exactPerDayRate / 8;
 
-  // 3. Determine Payable Days
+  // 2. Display & Exact Multiplier Rates (Fixed to 2 Decimals)
+  const perDayRate = Number(exactPerDayRate.toFixed(2));     // 607.14
+  const otRatePerHour = Number(exactOtRatePerHour.toFixed(2)); // 75.89
+
+  // 3. Determine Days Worked & Payable Days
   let daysWorked = customDaysWorked !== null ? customDaysWorked : 28;
   let payableDays = daysWorked;
 
@@ -27,23 +29,22 @@ function calculateSalarySlip({
     payableDays = daysWorked + 2;
   }
 
-  // 4. Earned Salary Math (Strict Math.floor on Rounded Rates)
+  // 4. Base Earned Salary Calculation (FIX HERE)
   let baseEarnedSalary;
   
-  if (isFullAttendance && daysWorked === 28) {
-    // Full attendance = Direct fixed monthly salary
-    baseEarnedSalary = monthlySalary; 
+  if (isFullAttendance && daysWorked === 28 && payableDays === 28) {
+    baseEarnedSalary = monthlySalary;
   } else {
-    // Calculated directly from the fixed 2-decimal perDayRate
-    baseEarnedSalary = Math.floor(perDayRate * payableDays);
+    // Hidden decimals ki jagah perDayRate (607.14) se multiply karein
+    baseEarnedSalary = Math.round(perDayRate * payableDays);
   }
 
   // 5. OT Amount Calculation
-  const otAmount = Math.floor(otRatePerHour * otHours);
+  const otAmount = Math.round(otRatePerHour * otHours);
 
-  // 6. Gross, Deductions & Net Salary
+  // 6. Final Calculations
   const grossSalary = baseEarnedSalary + otAmount;
-  const totalDeductions = Math.floor(weeklyWages + pf + advance);
+  const totalDeductions = Math.round(weeklyWages + pf + advance);
   const netSalary = grossSalary - totalDeductions;
 
   return {
