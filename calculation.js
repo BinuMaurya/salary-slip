@@ -11,40 +11,30 @@ function calculateSalarySlip({
 }) {
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // 1. Unrounded Rates
+  // 1. Per day rate based on 28 days base
   const exactPerDayRate = monthlySalary / 28;
   const exactOtRatePerHour = exactPerDayRate / 8;
 
-  // 2. Display & Exact Multiplier Rates (Fixed to 2 Decimals)
-  const perDayRate = Number(exactPerDayRate.toFixed(2));     // 607.14
-  const otRatePerHour = Number(exactOtRatePerHour.toFixed(2)); // 75.89
-
-  // 3. Determine Days Worked & Payable Days
   let daysWorked = customDaysWorked !== null ? customDaysWorked : 28;
   let payableDays = daysWorked;
 
-  if (isFullAttendance && daysWorked === 28) {
-    payableDays = daysInMonth; 
-  } else if (daysWorked > 28) {
-    payableDays = daysWorked + 2;
-  }
-
-  // 4. Base Earned Salary Calculation (FIX HERE)
+  // 2. Base Earned Salary Calculation logic
   let baseEarnedSalary;
-  
-  if (isFullAttendance && daysWorked === 28 && payableDays === 28) {
-    baseEarnedSalary = monthlySalary;
+
+  if (isFullAttendance && daysWorked >= 28) {
+    // Exact monthly salary without any decimal math error
+    baseEarnedSalary = monthlySalary; 
   } else {
-    // Hidden decimals ki jagah perDayRate (607.14) se multiply karein
-    baseEarnedSalary = Math.round(perDayRate * payableDays);
+    // Strict Math.floor so no extra rupee is added ever
+    baseEarnedSalary = Math.floor(exactPerDayRate * payableDays);
   }
 
-  // 5. OT Amount Calculation
-  const otAmount = Math.round(otRatePerHour * otHours);
+  // 3. Exact OT Calculation (Floored to avoid extra rupee)
+  const otAmount = Math.floor(exactOtRatePerHour * otHours);
 
-  // 6. Final Calculations
+  // 4. Final Math
   const grossSalary = baseEarnedSalary + otAmount;
-  const totalDeductions = Math.round(weeklyWages + pf + advance);
+  const totalDeductions = Math.floor(weeklyWages + pf + advance);
   const netSalary = grossSalary - totalDeductions;
 
   return {
@@ -53,8 +43,8 @@ function calculateSalarySlip({
     daysInMonth,
     daysWorked,
     payableDays,
-    perDayRate,
-    otRatePerHour,
+    perDayRate: Number(exactPerDayRate.toFixed(2)),
+    otRatePerHour: Number(exactOtRatePerHour.toFixed(2)),
     baseEarnedSalary,
     otAmount,
     grossSalary,
