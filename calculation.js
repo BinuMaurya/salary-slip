@@ -5,34 +5,39 @@ function calculateSalarySlip({
   isFullAttendance = true,           
   customDaysWorked = null,           
   otHours = 0, 
+  customOtRate = null,
   weeklyWages = 0, 
   pf = 0, 
   advance = 0 
 }) {
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // 1. Per day rate based on 28 days base
-  const exactPerDayRate = monthlySalary / 28;
-  const exactOtRatePerHour = exactPerDayRate / 8;
+  // 1. Daily Rate & OT Ratek
+  const perDayRate = Number((monthlySalary / 28).toFixed(2));
+  const otRatePerHour = customOtRate ? Number(customOtRate) : Number((perDayRate / 8).toFixed(2));
 
+  // 2. Days Logic
   let daysWorked = customDaysWorked !== null ? customDaysWorked : 28;
   let payableDays = daysWorked;
 
-  // 2. Base Earned Salary Calculation logic
-  let baseEarnedSalary;
-
-  if (isFullAttendance && daysWorked >= 28) {
-    // Exact monthly salary without any decimal math error
-    baseEarnedSalary = monthlySalary; 
-  } else {
-    // Strict Math.floor so no extra rupee is added ever
-    baseEarnedSalary = Math.floor(exactPerDayRate * payableDays);
+  if (isFullAttendance && daysWorked === 28) {
+    payableDays = daysInMonth; 
+  } else if (daysWorked > 28) {
+    payableDays = daysWorked + 2;
   }
 
-  // 3. Exact OT Calculation (Floored to avoid extra rupee)
-  const otAmount = Math.floor(exactOtRatePerHour * otHours);
+  // 3. Base Earned Salary Calculation
+  let baseEarnedSalary;
+  if (isFullAttendance && daysWorked === 28 && payableDays === 28) {
+    baseEarnedSalary = monthlySalary;
+  } else {
+    baseEarnedSalary = Math.floor(perDayRate * payableDays);
+  }
 
-  // 4. Final Math
+  // 4. OT Amount (Math.floor se ₹1 extra nahi aayega)
+  const otAmount = Math.floor(otRatePerHour * otHours);
+
+  // 5. Deductions & Totals
   const grossSalary = baseEarnedSalary + otAmount;
   const totalDeductions = Math.floor(weeklyWages + pf + advance);
   const netSalary = grossSalary - totalDeductions;
@@ -43,8 +48,8 @@ function calculateSalarySlip({
     daysInMonth,
     daysWorked,
     payableDays,
-    perDayRate: Number(exactPerDayRate.toFixed(2)),
-    otRatePerHour: Number(exactOtRatePerHour.toFixed(2)),
+    perDayRate,
+    otRatePerHour,
     baseEarnedSalary,
     otAmount,
     grossSalary,
@@ -56,4 +61,8 @@ function calculateSalarySlip({
   };
 }
 
-module.exports = { calculateSalarySlip };
+// Browser aur Node.js dono ke liye Export Fix
+export { calculateSalarySlip };
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { calculateSalarySlip };
+}
