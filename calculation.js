@@ -11,41 +11,39 @@ function calculateSalarySlip({
 }) {
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // 1. Per Day Rate & OT Rate Calculations
-  const exactPerDayRate = monthlySalary / 28;
+  // 1. Calculate Base Rates
+  const rawPerDayRate = monthlySalary / 28;
   
-  // Custom OT Rate check (Safety fix: check if valid custom rate passed)
-  const exactOtRate = (customOtRate !== null && customOtRate !== undefined && customOtRate !== '') 
-    ? Number(customOtRate) 
-    : (exactPerDayRate / 8);
+  // FIXED: Calculator ki tarah Per Day Rate ko 2 decimals par FIX kar rahe hain
+  // e.g. 17000 / 28 = 607.1428 -> 607.14
+  const perDayRate = Number(rawPerDayRate.toFixed(2));
 
-  // Display Rates (2 Decimals for UI)
-  const perDayRate = Number(exactPerDayRate.toFixed(2));
-  const otRatePerHour = Number(exactOtRate.toFixed(2));
+  // OT Rate Calculation
+  const otRatePerHour = (customOtRate !== null && customOtRate !== undefined && customOtRate !== '' && Number(customOtRate) > 0) 
+    ? Number(customOtRate) 
+    : Number((perDayRate / 8).toFixed(2));
 
   // 2. Days Worked
   const daysWorked = customDaysWorked !== null ? Number(customDaysWorked) : 28;
   const payableDays = daysWorked; 
 
-  // 3. Exact Earnings Calculations
+  // 3. Base Earned Salary (Rounded Rate x Days)
+  // 607.14 * 32 = 19428.48 -> Round to 19428 (Exactly Matches Calculator!)
   const baseEarnedSalaryExact = (daysWorked === 28) 
     ? Number(monthlySalary) 
-    : (exactPerDayRate * payableDays);
+    : (perDayRate * payableDays);
 
-  const otAmountExact = exactOtRate * Number(otHours);
+  const otAmountExact = otRatePerHour * Number(otHours);
 
-  // 4. Exact Deductions
-  const totalDeductionsExact = Number(weeklyWages) + Number(pf) + Number(advance);
-
-  // 5. Unified Rounding Logic (To avoid +1 mismatch)
-  // Sabhi components ko Math.round() se sync karke exact summation banayenge
+  // 4. Rounding Off Earnings
   const baseEarnedSalary = Math.round(baseEarnedSalaryExact);
   const otAmount = Math.round(otAmountExact);
   
-  // Gross is sum of rounded parts so that table breakdown ALWAYS matches Gross Total
+  // Gross Salary = Base + OT
   const grossSalary = baseEarnedSalary + otAmount;
   
-  const totalDeductions = Math.round(totalDeductionsExact);
+  // 5. Deductions & Net Salary
+  const totalDeductions = Math.round(Number(weeklyWages) + Number(pf) + Number(advance));
   const netSalary = grossSalary - totalDeductions;
 
   return {
