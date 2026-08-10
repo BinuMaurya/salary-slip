@@ -2,7 +2,6 @@ function calculateSalarySlip({
   monthlySalary = 0, 
   month = new Date().getMonth() + 1, 
   year = new Date().getFullYear(),   
-  isFullAttendance = true,           
   customDaysWorked = null,           
   otHours = 0, 
   customOtRate = null,
@@ -12,34 +11,41 @@ function calculateSalarySlip({
 }) {
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // 1. Daily Rate & OT Ratek
-  const perDayRate = Number((monthlySalary / 28).toFixed(2));
-  const otRatePerHour = customOtRate ? Number(customOtRate) : Number((perDayRate / 8).toFixed(2));
+  // 1. Per Day Rate & OT Rate Calculations
+  const exactPerDayRate = monthlySalary / 28;
+  
+  // Custom OT Rate check (Safety fix: check if valid custom rate passed)
+  const exactOtRate = (customOtRate !== null && customOtRate !== undefined && customOtRate !== '') 
+    ? Number(customOtRate) 
+    : (exactPerDayRate / 8);
 
-  // 2. Days Logic
-  let daysWorked = customDaysWorked !== null ? customDaysWorked : 28;
-  let payableDays = daysWorked;
+  // Display Rates (2 Decimals for UI)
+  const perDayRate = Number(exactPerDayRate.toFixed(2));
+  const otRatePerHour = Number(exactOtRate.toFixed(2));
 
-  if (isFullAttendance && daysWorked === 28) {
-    payableDays = daysInMonth; 
-  } else if (daysWorked > 28) {
-    payableDays = daysWorked + 2;
-  }
+  // 2. Days Worked
+  const daysWorked = customDaysWorked !== null ? Number(customDaysWorked) : 28;
+  const payableDays = daysWorked; 
 
-  // 3. Base Earned Salary Calculation
-  let baseEarnedSalary;
-  if (isFullAttendance && daysWorked === 28 && payableDays === 28) {
-    baseEarnedSalary = monthlySalary;
-  } else {
-    baseEarnedSalary = Math.floor(perDayRate * payableDays);
-  }
+  // 3. Exact Earnings Calculations
+  const baseEarnedSalaryExact = (daysWorked === 28) 
+    ? Number(monthlySalary) 
+    : (exactPerDayRate * payableDays);
 
-  // 4. OT Amount (Math.floor se ₹1 extra nahi aayega)
-  const otAmount = Math.floor(otRatePerHour * otHours);
+  const otAmountExact = exactOtRate * Number(otHours);
 
-  // 5. Deductions & Totals
+  // 4. Exact Deductions
+  const totalDeductionsExact = Number(weeklyWages) + Number(pf) + Number(advance);
+
+  // 5. Unified Rounding Logic (To avoid +1 mismatch)
+  // Sabhi components ko Math.round() se sync karke exact summation banayenge
+  const baseEarnedSalary = Math.round(baseEarnedSalaryExact);
+  const otAmount = Math.round(otAmountExact);
+  
+  // Gross is sum of rounded parts so that table breakdown ALWAYS matches Gross Total
   const grossSalary = baseEarnedSalary + otAmount;
-  const totalDeductions = Math.floor(weeklyWages + pf + advance);
+  
+  const totalDeductions = Math.round(totalDeductionsExact);
   const netSalary = grossSalary - totalDeductions;
 
   return {
@@ -53,15 +59,15 @@ function calculateSalarySlip({
     baseEarnedSalary,
     otAmount,
     grossSalary,
-    weeklyWages,
-    pf,
-    advance,
+    weeklyWages: Number(weeklyWages),
+    pf: Number(pf),
+    advance: Number(advance),
     totalDeductions,
     netSalary
   };
 }
 
-// Browser aur Node.js dono ke liye Export Fix
+// Universal Export Support
 export { calculateSalarySlip };
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { calculateSalarySlip };
