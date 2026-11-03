@@ -87,7 +87,6 @@ async function updatePreview() {
   const designation = document.getElementById('inDesignation')?.value || '';
   const monthYear = document.getElementById('inMonthYear')?.value || '';
 
-  // 1. Days in Month ki value input field se nikalna
   const customDaysInMonth = Number(
     document.getElementById('inDaysInMonth')?.value || 
     document.getElementById('daysInMonth')?.value || 
@@ -97,8 +96,10 @@ async function updatePreview() {
   const monthlySalary = Number(document.getElementById('inMonthlySalary')?.value || 0);
   const customDaysWorked = Number(document.getElementById('inDaysPresent')?.value || document.getElementById('inDaysWorked')?.value || 0);
   
-  // 2. Half Days input box se read karna
   const halfDays = Number(document.getElementById('inHalfDays')?.value || 0);
+
+  // Direct Days Absent value input box se uthai hai
+  const daysAbsent = Number(document.getElementById('inDaysAbsent')?.value || 0);
 
   const otHours = Number(document.getElementById('inOtHours')?.value || 0);
   const customOtRate = Number(document.getElementById('inOtRate')?.value || 0);
@@ -108,7 +109,6 @@ async function updatePreview() {
   const pf = Number(document.getElementById('inPf')?.value || 0);
   const advance = Number(document.getElementById('inAdvance')?.value || 0);
 
-  // 3. customDaysInMonth aur halfDays ko calculation function me pass karna
   const result = calculateSalarySlip({
     monthlySalary,
     customDaysInMonth: customDaysInMonth > 0 ? customDaysInMonth : null,
@@ -135,10 +135,11 @@ async function updatePreview() {
   setElementText('outWorkedDays', result.daysWorked);
   setElementText('outDaysPresent', customDaysWorked);
   
-  // 4. Preview panel me Half Days display karna
   setElementText('outHalfDays', result.halfDays || halfDays);
 
-  setElementText('outDaysAbsent', Math.max(0, result.daysInMonth - customDaysWorked));
+  // Custom Days Absent input box se sidha show karne ke liye update kiya gaya
+  setElementText('outDaysAbsent', daysAbsent);
+
   setElementText('outOtHours', otHours);
   setElementText('outTotalHours', totalHours);
 
