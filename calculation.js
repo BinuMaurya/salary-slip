@@ -2,6 +2,7 @@ function calculateSalarySlip({
   monthlySalary = 0, 
   month = new Date().getMonth() + 1, 
   year = new Date().getFullYear(),   
+  customDaysInMonth = null,          
   customDaysWorked = null,          
   otHours = 0, 
   customOtRate = null,
@@ -9,24 +10,28 @@ function calculateSalarySlip({
   pf = 0, 
   advance = 0 
 }) {
-  const daysInMonth = new Date(year, month, 0).getDate();
+  // Agar customDaysInMonth pass kiya gaya hai toh wo use hoga, nahi toh month ke actual days
+  const actualDaysInMonth = new Date(year, month, 0).getDate();
+  const daysInMonth = (customDaysInMonth && Number(customDaysInMonth) > 0) 
+    ? Number(customDaysInMonth) 
+    : actualDaysInMonth;
 
-  // 1. Base Rate (Decimal/Paise hatane ke liye Math.floor ka use)
-  const rawPerDayRate = monthlySalary / 28;
+  // 1. Base Per Day Rate (monthlySalary / daysInMonth, decimal ke baad ki value hta kar)
+  const rawPerDayRate = monthlySalary / daysInMonth;
   const perDayRate = Math.floor(rawPerDayRate); 
 
-  // 2. OT Rate Calculation (Decimal/Paise hatane ke liye Math.floor ka use)
+  // 2. OT Rate Calculation (perDayRate / 8, decimal ke baad ki value hta kar)
   const calculatedOtRate = perDayRate / 8;
   const otRatePerHour = (customOtRate !== null && customOtRate !== undefined && customOtRate !== '' && Number(customOtRate) > 0) 
     ? Number(customOtRate) 
     : Math.floor(calculatedOtRate); 
 
   // 3. Days Worked
-  const daysWorked = customDaysWorked !== null ? Number(customDaysWorked) : 28;
+  const daysWorked = customDaysWorked !== null ? Number(customDaysWorked) : daysInMonth;
   const payableDays = daysWorked; 
 
   // 4. Base Earned Salary Calculation
-  const baseEarnedSalaryExact = (daysWorked === 28) 
+  const baseEarnedSalaryExact = (daysWorked === daysInMonth) 
     ? Number(monthlySalary) 
     : (perDayRate * payableDays);
 
