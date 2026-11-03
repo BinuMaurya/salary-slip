@@ -13,13 +13,13 @@ function calculateSalarySlip({
 
   // 1. Base Rate (Decimal/Paise hatane ke liye Math.floor ka use)
   const rawPerDayRate = monthlySalary / 28;
-  const perDayRate = Math.floor(rawPerDayRate); // Jaise 643.57 -> 643 (ya jo bhi aaye)
+  const perDayRate = Math.floor(rawPerDayRate); 
 
   // 2. OT Rate Calculation (Decimal/Paise hatane ke liye Math.floor ka use)
   const calculatedOtRate = perDayRate / 8;
   const otRatePerHour = (customOtRate !== null && customOtRate !== undefined && customOtRate !== '' && Number(customOtRate) > 0) 
     ? Number(customOtRate) 
-    : Math.floor(calculatedOtRate); // Jaise 72.5 -> 72
+    : Math.floor(calculatedOtRate); 
 
   // 3. Days Worked
   const daysWorked = customDaysWorked !== null ? Number(customDaysWorked) : 28;
@@ -61,7 +61,7 @@ function calculateSalarySlip({
 }
 
 // Universal Export Support
-export { calculateSalarySlip };git add .
+export { calculateSalarySlip };
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { calculateSalarySlip };
 }
