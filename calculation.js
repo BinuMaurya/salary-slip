@@ -2,7 +2,7 @@ function calculateSalarySlip({
   monthlySalary = 0, 
   month = new Date().getMonth() + 1, 
   year = new Date().getFullYear(),   
-  customDaysWorked = null,           
+  customDaysWorked = null,          
   otHours = 0, 
   customOtRate = null,
   weeklyWages = 0, 
@@ -11,38 +11,33 @@ function calculateSalarySlip({
 }) {
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // 1. Calculate Base Rates
+  // 1. Base Rate (Decimal/Paise hatane ke liye Math.floor ka use)
   const rawPerDayRate = monthlySalary / 28;
-  
-  // FIXED: Calculator ki tarah Per Day Rate ko 2 decimals par FIX kar rahe hain
-  // e.g. 17000 / 28 = 607.1428 -> 607.14
-  const perDayRate = Number(rawPerDayRate.toFixed(2));
+  const perDayRate = Math.floor(rawPerDayRate); // Jaise 643.57 -> 643 (ya jo bhi aaye)
 
-  // OT Rate Calculation
+  // 2. OT Rate Calculation (Decimal/Paise hatane ke liye Math.floor ka use)
+  const calculatedOtRate = perDayRate / 8;
   const otRatePerHour = (customOtRate !== null && customOtRate !== undefined && customOtRate !== '' && Number(customOtRate) > 0) 
     ? Number(customOtRate) 
-    : Number((perDayRate / 8).toFixed(2));
+    : Math.floor(calculatedOtRate); // Jaise 72.5 -> 72
 
-  // 2. Days Worked
+  // 3. Days Worked
   const daysWorked = customDaysWorked !== null ? Number(customDaysWorked) : 28;
   const payableDays = daysWorked; 
 
-  // 3. Base Earned Salary (Rounded Rate x Days)
-  // 607.14 * 32 = 19428.48 -> Round to 19428 (Exactly Matches Calculator!)
+  // 4. Base Earned Salary Calculation
   const baseEarnedSalaryExact = (daysWorked === 28) 
     ? Number(monthlySalary) 
     : (perDayRate * payableDays);
 
+  // 5. OT Amount Calculation
   const otAmountExact = otRatePerHour * Number(otHours);
+  const otAmount = Math.floor(otAmountExact);
 
-  // 4. Rounding Off Earnings
+  // 6. Final Breakdown
   const baseEarnedSalary = Math.round(baseEarnedSalaryExact);
-  const otAmount = Math.round(otAmountExact);
-  
-  // Gross Salary = Base + OT
   const grossSalary = baseEarnedSalary + otAmount;
   
-  // 5. Deductions & Net Salary
   const totalDeductions = Math.round(Number(weeklyWages) + Number(pf) + Number(advance));
   const netSalary = grossSalary - totalDeductions;
 
