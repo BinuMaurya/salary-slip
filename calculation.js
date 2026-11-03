@@ -4,7 +4,7 @@ function calculateSalarySlip({
   year = new Date().getFullYear(),   
   customDaysInMonth = null,          
   customDaysWorked = null,          
-  halfDays = 0,               // Naya parameter half-days ke liye
+  halfDays = 0,               // Sirf display ke liye, calculation me ab minus nahi hoga
   otHours = 0, 
   customOtRate = null,
   weeklyWages = 0, 
@@ -26,13 +26,9 @@ function calculateSalarySlip({
     ? Number(customOtRate) 
     : Math.floor(calculatedOtRate); 
 
-  // 3. Days Worked with Half-Day adjustment (Har 1 half-day ka matlab 0.5 day kam hoga ya count hoga)
-  const baseDaysWorked = customDaysWorked !== null ? Number(customDaysWorked) : daysInMonth;
-  const totalHalfDays = Number(halfDays) || 0;
-  
-  // Effective payable days: Total present days me se half-days ka adha hissa (totalHalfDays * 0.5) minus ho jayega
-  const payableDays = Math.max(0, baseDaysWorked - (totalHalfDays * 0.5));
-  const daysWorked = payableDays; 
+  // 3. Days Worked (Half-day ka deduction hata diya gaya hai, ab ye poore present days lenge)
+  const daysWorked = customDaysWorked !== null ? Number(customDaysWorked) : daysInMonth;
+  const payableDays = daysWorked; 
 
   // 4. Base Earned Salary Calculation
   const baseEarnedSalaryExact = (payableDays === daysInMonth) 
@@ -56,7 +52,7 @@ function calculateSalarySlip({
     daysInMonth,
     daysWorked,
     payableDays,
-    halfDays: totalHalfDays,
+    halfDays: Number(halfDays) || 0,
     perDayRate,
     otRatePerHour,
     baseEarnedSalary,
