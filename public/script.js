@@ -87,6 +87,13 @@ async function updatePreview() {
   const designation = document.getElementById('inDesignation')?.value || '';
   const monthYear = document.getElementById('inMonthYear')?.value || '';
 
+  // 1. Days in Month ki value input field se nikalna
+  const customDaysInMonth = Number(
+    document.getElementById('inDaysInMonth')?.value || 
+    document.getElementById('daysInMonth')?.value || 
+    0
+  );
+
   const monthlySalary = Number(document.getElementById('inMonthlySalary')?.value || 0);
   const customDaysWorked = Number(document.getElementById('inDaysPresent')?.value || document.getElementById('inDaysWorked')?.value || 0);
   const otHours = Number(document.getElementById('inOtHours')?.value || 0);
@@ -97,8 +104,10 @@ async function updatePreview() {
   const pf = Number(document.getElementById('inPf')?.value || 0);
   const advance = Number(document.getElementById('inAdvance')?.value || 0);
 
+  // 2. customDaysInMonth ko function ke andar pass karna
   const result = calculateSalarySlip({
     monthlySalary,
+    customDaysInMonth: customDaysInMonth > 0 ? customDaysInMonth : null,
     customDaysWorked,
     otHours,
     customOtRate: customOtRate > 0 ? customOtRate : null,
@@ -157,8 +166,9 @@ async function updatePreview() {
     });
   };
 
-  setMultiText(['perDayRateDisplay', 'outPerDayRate'], `₹${result.perDayRate.toFixed(2)}`);
-  setMultiText(['otRateDisplay', 'outOtRate'], `₹${result.otRatePerHour.toFixed(2)}`);
+  // Integers formatting (decimal .00 hatane ke liye Math.floor)
+  setMultiText(['perDayRateDisplay', 'outPerDayRate'], `₹${result.perDayRate}`);
+  setMultiText(['otRateDisplay', 'outOtRate'], `₹${result.otRatePerHour}`);
   setMultiText(['baseSalaryDisplay', 'outBaseSalary'], `₹${result.baseEarnedSalary.toLocaleString('en-IN')}`);
   setMultiText(['otAmountDisplay', 'outOtAmount'], `₹${result.otAmount.toLocaleString('en-IN')}`);
   setMultiText(['grossSalaryDisplay', 'outGrossSalary'], `₹${result.grossSalary.toLocaleString('en-IN')}`);
