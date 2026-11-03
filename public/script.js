@@ -96,6 +96,10 @@ async function updatePreview() {
 
   const monthlySalary = Number(document.getElementById('inMonthlySalary')?.value || 0);
   const customDaysWorked = Number(document.getElementById('inDaysPresent')?.value || document.getElementById('inDaysWorked')?.value || 0);
+  
+  // 2. Half Days input box se read karna
+  const halfDays = Number(document.getElementById('inHalfDays')?.value || 0);
+
   const otHours = Number(document.getElementById('inOtHours')?.value || 0);
   const customOtRate = Number(document.getElementById('inOtRate')?.value || 0);
   const totalHours = document.getElementById('inTotalHours')?.value || '0';
@@ -104,11 +108,12 @@ async function updatePreview() {
   const pf = Number(document.getElementById('inPf')?.value || 0);
   const advance = Number(document.getElementById('inAdvance')?.value || 0);
 
-  // 2. customDaysInMonth ko function ke andar pass karna
+  // 3. customDaysInMonth aur halfDays ko calculation function me pass karna
   const result = calculateSalarySlip({
     monthlySalary,
     customDaysInMonth: customDaysInMonth > 0 ? customDaysInMonth : null,
     customDaysWorked,
+    halfDays,
     otHours,
     customOtRate: customOtRate > 0 ? customOtRate : null,
     weeklyWages,
@@ -129,6 +134,10 @@ async function updatePreview() {
 
   setElementText('outWorkedDays', result.daysWorked);
   setElementText('outDaysPresent', customDaysWorked);
+  
+  // 4. Preview panel me Half Days display karna
+  setElementText('outHalfDays', result.halfDays || halfDays);
+
   setElementText('outDaysAbsent', Math.max(0, result.daysInMonth - customDaysWorked));
   setElementText('outOtHours', otHours);
   setElementText('outTotalHours', totalHours);
@@ -166,7 +175,7 @@ async function updatePreview() {
     });
   };
 
-  // Integers formatting (decimal .00 hatane ke liye Math.floor)
+  // Integers formatting
   setMultiText(['perDayRateDisplay', 'outPerDayRate'], `₹${result.perDayRate}`);
   setMultiText(['otRateDisplay', 'outOtRate'], `₹${result.otRatePerHour}`);
   setMultiText(['baseSalaryDisplay', 'outBaseSalary'], `₹${result.baseEarnedSalary.toLocaleString('en-IN')}`);
