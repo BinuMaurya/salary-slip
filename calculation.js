@@ -61,7 +61,7 @@ function calculateSalarySlip({
 }
 
 // Universal Export Support
-export { calculateSalarySlip };
+export { calculateSalarySlip };git add .
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { calculateSalarySlip };
 }
